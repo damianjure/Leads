@@ -1,0 +1,14 @@
+{
+  "name": "LeadMap AI",
+  "description": "AI-powered lead generation and market intelligence platform that turns business descriptions into actionable insights and leads.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "AI Business Parsing",
+    "Buyer Persona Generation",
+    "Map-Based Lead Finding",
+    "Website SEO Analysis",
+    "Google Workspace Integration"
+  ]
+}
