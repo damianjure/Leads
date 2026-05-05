@@ -41,7 +41,6 @@ export const strategyResponseSchema = {
 export const websiteAnalysisResponseSchema = {
   type: Type.OBJECT,
   properties: {
-    performance_score: { type: Type.NUMBER },
     lead_capture_readiness: { type: Type.STRING, enum: ["LOW", "MEDIUM", "HIGH"] },
     seo_checklist: {
       type: Type.ARRAY,
@@ -68,5 +67,5 @@ export const websiteAnalysisResponseSchema = {
     },
     improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
   },
-  required: ["performance_score", "lead_capture_readiness", "seo_checklist", "seo_breakdown", "improvements"],
+  required: ["lead_capture_readiness", "seo_checklist", "seo_breakdown", "improvements"],
 } as const;

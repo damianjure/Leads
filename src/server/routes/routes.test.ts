@@ -66,7 +66,7 @@ describe("backend route contracts", () => {
       .send({ url: "http://localhost:3000" });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toMatch(/locales|privadas|IP privada|http\/https/i);
+    expect(response.body.error).toMatch(/URL inválida|no permitida/i);
   });
 
   it("rejects private-network scrape targets", async () => {

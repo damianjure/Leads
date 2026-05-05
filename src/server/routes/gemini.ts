@@ -21,7 +21,7 @@ geminiRouter.post("/gemini/strategy", geminiLimiter, async (req, res) => {
     const sanitized = sanitizePromptInput(input);
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: `Analiza esta descripción de negocio y devuelve información estructurada del negocio y un buyer persona.
         IMPORTANTE: Todas las respuestas descriptivas, nombres de industrias, puntos de dolor y metas DEBEN ESTAR EN ESPAÑOL.
         Input: "${sanitized}"`,
@@ -61,7 +61,7 @@ geminiRouter.post("/gemini/website-analysis", geminiLimiter, async (req, res) =>
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: `Analiza los siguientes datos de un sitio web y proporciona una puntuación de SEO/Conversión e insights detallados.
         Calcula puntuaciones específicas (0-100) para el Título, Meta Descripción y presencia de H1 basándote en su calidad y longitud.
         Identifica las palabras clave (keywords) principales.
