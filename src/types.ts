@@ -24,6 +24,11 @@ export interface Lead {
   opportunity_score: 'HIGH' | 'MEDIUM' | 'LOW';
   lat?: number;
   lng?: number;
+  rating?: number;
+  totalRatings?: number;
+  place_id?: string;
+  types?: string[];
+  photoUrl?: string;
 }
 
 export interface WebsiteAnalysis {
@@ -47,4 +52,61 @@ export interface AdRecommendation {
   channels: string[];
   targeting: string[];
   strategy: string;
+}
+
+export interface AppConfigStatus {
+  gemini: boolean;
+  pagespeed: boolean;
+  googleMaps: boolean;
+  strategyMode: "ready" | "blocked";
+  auditMode: "ready" | "degraded" | "blocked";
+  leadSearchMode: "ready" | "degraded" | "places";
+  missingVariables: string[];
+}
+
+export interface ScrapedWebsiteData {
+  title: string;
+  meta_description: string;
+  h1: string;
+  body_preview: string;
+  forms_count: number;
+  has_cta: boolean;
+}
+
+export interface GeocodeResponse {
+  results: Array<{
+    geometry: { location: { lat: number; lng: number } };
+    formatted_address: string;
+  }>;
+  source: "live" | "demo";
+  note?: string;
+}
+
+export interface PerformanceAuditResponse {
+  performance_score: number;
+  seo_score: number;
+  accessibility_score: number;
+  best_practices_score: number;
+  is_real: boolean;
+  audited_url: string;
+  source: "live" | "estimated";
+  note?: string;
+}
+
+export interface ApiErrorResponse {
+  error: string;
+}
+
+export interface PlacesSearchResponse {
+  leads: Lead[];
+  source: "live" | "demo";
+  note?: string;
+  nextPageToken?: string;
+}
+
+export interface PlaceDetailsResponse {
+  phone?: string;
+  website?: string;
+  photoUrl?: string;
+  url?: string;
 }

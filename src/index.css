@@ -1,47 +1,69 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
-  --color-brand: #856C8B;
-  --color-mint: #D4EBD0;
-  --color-teal: #A4C5C6;
-  --color-yellow: #FFEB99;
-  --color-bg: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-border: #E2E8F0;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-brand: #7C6FF7;
+  --color-brand-subtle: #2A2548;
+  --color-mint: #1A332A;
+  --color-teal: #1A2A3A;
+  --color-yellow: #2E2610;
+  --color-bg: #0D0D17;
+  --color-surface: #161625;
+  --color-surface-hover: #1E1E32;
+  --color-border: #262640;
+  --color-border-light: #2E2E4A;
 }
 
 @layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at top left, rgba(124, 111, 247, 0.08), transparent 40%),
+      radial-gradient(circle at top right, rgba(124, 111, 247, 0.04), transparent 35%),
+      radial-gradient(circle at bottom center, rgba(124, 111, 247, 0.03), transparent 45%);
+    pointer-events: none;
+    z-index: -2;
+  }
+
   body {
-    @apply bg-bg text-slate-900 selection:bg-mint/40 antialiased font-sans;
+    @apply bg-bg text-slate-300 selection:bg-brand/30 antialiased font-sans;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight text-slate-900;
+    @apply font-display tracking-tight text-slate-200;
   }
 }
 
 @layer components {
   .pro-card {
-    @apply bg-surface border border-border rounded-3xl p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-300;
+    @apply bg-surface border border-border rounded-[28px] p-8 transition-all
+           hover:-translate-y-0.5 hover:border-brand/20 hover:bg-surface-hover;
   }
 
   .pro-btn {
-    @apply bg-brand text-white px-8 py-3.5 rounded-2xl font-semibold transition-all 
-           hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:grayscale;
+    @apply bg-brand text-white px-8 py-3.5 rounded-2xl font-semibold transition-all
+           hover:bg-brand/90 active:scale-95 disabled:opacity-30 disabled:grayscale;
   }
 
   .pro-btn-outline {
-    @apply border-2 border-slate-200 bg-white px-8 py-3.5 rounded-2xl font-semibold transition-all
-           hover:bg-slate-50 active:scale-95;
+    @apply border border-border bg-surface px-8 py-3.5 rounded-2xl font-semibold transition-all
+           hover:border-brand/30 hover:bg-surface-hover text-slate-300 active:scale-95;
   }
 
   .pro-input {
-    @apply bg-white border border-slate-200 rounded-2xl px-6 py-4 text-lg focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all placeholder:text-slate-400;
+    @apply bg-surface border border-border rounded-2xl px-6 py-4 text-lg text-slate-200
+           focus:ring-2 focus:ring-brand/20 focus:border-brand/50 outline-none transition-all
+           placeholder:text-slate-600;
   }
 
   .col-header {
@@ -50,6 +72,15 @@
 
   .section-hero {
     @apply text-5xl font-extrabold leading-tight mb-6 font-display;
+  }
+
+  .hero-shell {
+    @apply relative overflow-hidden bg-surface border border-border rounded-[28px] p-8 transition-all
+           hover:-translate-y-0.5 hover:border-brand/20 hover:bg-surface-hover;
+    background:
+      linear-gradient(135deg, rgba(22, 22, 37, 0.95), rgba(22, 22, 37, 0.85)),
+      radial-gradient(circle at top right, rgba(124, 111, 247, 0.06), transparent 40%),
+      radial-gradient(circle at bottom left, rgba(124, 111, 247, 0.04), transparent 35%);
   }
 }
 

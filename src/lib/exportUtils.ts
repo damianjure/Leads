@@ -1,32 +1,39 @@
-/**
- * Utility to download data as files
- */
-export const exportData = {
-  /**
-   * Downloads an object as a JSON file
-   */
-  asJSON: (data: any, filename: string) => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.json`;
+import { Lead, WebsiteAnalysis, AdRecommendation } from "../types";
+
+const sanitizeCSVCell = (value: string) => {
+  if (/^[=+\-@]/.test(value)) {
+    return `'${value}`;
+  }
+  return value;
+};
+
+const downloadBlob = (content: string, filename: string, mimeType: string) => {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  try {
     document.body.appendChild(link);
     link.click();
+  } finally {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+};
+
+export const exportData = {
+  asJSON: <T,>(data: T, filename: string) => {
+    downloadBlob(JSON.stringify(data, null, 2), `${filename}.json`, "application/json");
   },
 
-  /**
-   * Downloads a website analysis as a readable text report
-   */
-  asReadableReport: (analysis: any, urlStr: string, filename: string) => {
+  asReadableReport: (analysis: WebsiteAnalysis, urlStr: string, filename: string) => {
     const divider = "=========================================================";
     const subDivider = "---------------------------------------------------------";
-    
+
     const report = `
 ${divider}
-REPORTE DE AUDITORÍA DIGITAL - LEADGEN PRO v3.0
+REPORTE DE AUDITORÍA DIGITAL - LEADMAP STUDIO v3.0
 ${divider}
 
 [DATOS DEL ANÁLISIS]
@@ -51,7 +58,7 @@ ${subDivider}
 - Palabras Clave:        ${analysis.seo_breakdown.keywords.join(', ')}
 
 [CHECKLIST DE CUMPLIMIENTO]
-${analysis.seo_checklist.map((item: any) => 
+${analysis.seo_checklist.map((item) =>
   `[${item.status === 'pass' ? '✓ EXCELENTE' : '✗ DEFICIENTE'}] ${item.item.replace(/_/g, ' ').toUpperCase()}
    Impacto: ${item.score} puntos.
    Detalle: ${item.details || 'Revisión técnica recomendada.'}`
@@ -61,34 +68,23 @@ ${analysis.seo_checklist.map((item: any) =>
 ${analysis.improvements.map((imp: string, i: number) => `(${i + 1}) ${imp}`).join('\n')}
 
 ${divider}
-FIN DEL REPORTE - LEADGEN PRO AI AGENT
+FIN DEL REPORTE - LEADMAP STUDIO
 ${divider}
 `;
 
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = `${filename}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(blobUrl);
+    downloadBlob(report, `${filename}.txt`, "text/plain;charset=utf-8");
   },
 
-  /**
-   * Downloads a list of leads as a CSV file
-   */
-  leadsToCSV: (leads: any[], filename: string) => {
+  leadsToCSV: (leads: Lead[], filename: string) => {
     if (leads.length === 0) return;
-    
+
     const headers = ['Nombre', 'Dirección', 'Teléfono', 'Web', 'Puntuación'];
     const rows = leads.map(l => [
-      l.name,
-      l.address,
-      l.phone || 'N/A',
-      l.website || 'N/A',
-      l.opportunity_score
+      sanitizeCSVCell(l.name),
+      sanitizeCSVCell(l.address),
+      sanitizeCSVCell(l.phone || 'N/A'),
+      sanitizeCSVCell(l.website || 'N/A'),
+      l.opportunity_score,
     ]);
 
     const csvContent = [
@@ -96,14 +92,23 @@ ${divider}
       ...rows.map(row => row.map(item => `"${item.replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
+    downloadBlob(csvContent, `${filename}.csv`, "text/csv;charset=utf-8;");
+  },
+
+  strategyToMarkdown: (recommendations: AdRecommendation, filename: string) => {
+    const content = [
+      "# Estrategia publicitaria",
+      "",
+      "## Enfoque",
+      recommendations.strategy,
+      "",
+      "## Canales recomendados",
+      ...recommendations.channels.map((channel) => `- ${channel}`),
+      "",
+      "## Segmentación sugerida",
+      ...recommendations.targeting.map((target) => `- ${target}`),
+    ].join("\n");
+
+    downloadBlob(content, `${filename}.md`, "text/markdown;charset=utf-8");
+  },
 };
