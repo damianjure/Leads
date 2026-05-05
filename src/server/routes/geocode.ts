@@ -29,6 +29,19 @@ geocodeRouter.get("/google/geocode", geocodeLimiter, async (req, res) => {
         key: GOOGLE_MAPS_API_KEY,
       },
     });
+
+    if (response.data.status !== "OK") {
+      console.warn(`Geocoding fallback: Google returned ${response.data.status}`);
+      return res.json({
+        results: [{
+          geometry: { location: { lat: 40.4168, lng: -3.7038 } },
+          formatted_address: "Madrid, España (Demo)"
+        }],
+        source: "demo",
+        note: `Google Maps API error: ${response.data.status}. Verificá la key en Google Cloud Console.`,
+      });
+    }
+
     res.json({ ...response.data, source: "live" });
   } catch (error: unknown) {
     console.error("Error de geocodificación:", getErrorMessage(error, "Error desconocido en geocodificación"));

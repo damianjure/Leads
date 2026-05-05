@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, MapPin, Globe, Phone, Filter, Loader2, Navigation, Download, Zap, Star } from "lucide-react";
+import { Search, MapPin, Globe, Phone, Filter, Loader2, Navigation, Download, Zap, Star, ChevronDown, Maximize } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { AppConfigStatus, BusinessInfo, Lead, PlaceDetailsResponse } from "../types";
+import { AppConfigStatus, BusinessInfo, Lead, PlaceDetailsResponse, GeocodeResponse } from "../types";
 import { exportData } from "../lib/exportUtils";
 import { getErrorMessage } from "../lib/errors";
 import { api } from "../lib/api";
@@ -95,6 +95,10 @@ export const LeadFinder = ({
 
   const [showFilters, setShowFilters] = useState(false);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
+  const [geocodeResults, setGeocodeResults] = useState<GeocodeResponse["results"]>([]);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [radius, setRadius] = useState(25000);
+  const [radiusOpen, setRadiusOpen] = useState(false);
 
   const filteredLeads = leads.filter(lead => {
     const matchesScore = query.filters.score === 'ALL' || lead.opportunity_score === query.filters.score;
@@ -102,6 +106,36 @@ export const LeadFinder = ({
     const matchesPhone = !query.filters.hasPhone || !!lead.phone;
     return matchesScore && matchesWebsite && matchesPhone;
   });
+
+  const doSearch = async (lat: number, lng: number, locName: string, searchRadius: number) => {
+    setLoading(true);
+    setSelectedLead(null);
+    setLeadDetails(null);
+    setSearchMessage(null);
+    setShowLocationPicker(false);
+    try {
+      const locationCoords = `${lat},${lng}`;
+      const placesData = await api.searchPlaces(query.searchType, locationCoords, searchRadius);
+
+      if (placesData.source === "live" && placesData.leads.length > 0) {
+        setLeads(placesData.leads);
+        setSelectedLead(placesData.leads[0]);
+        setSearchMessage(`${placesData.leads.length} negocios encontrados para "${query.searchType}" en ${locName}.`);
+      } else if (placesData.source === "demo") {
+        setLeads([]);
+        setSearchMessage(placesData.note || "Cargá GOOGLE_MAPS_API_KEY para búsqueda real de negocios.");
+      } else {
+        setLeads([]);
+        setSearchMessage(`No se encontraron negocios para "${query.searchType}" en ${locName}.`);
+      }
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) console.error(error);
+      setLeads([]);
+      setSearchMessage(getErrorMessage(error, "No se pudo generar la búsqueda. Intentá de nuevo."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = async (overrides?: Partial<Pick<typeof query, "searchType" | "searchLocation">>) => {
     const searchType = overrides?.searchType ?? query.searchType;
@@ -112,40 +146,49 @@ export const LeadFinder = ({
     setSelectedLead(null);
     setLeadDetails(null);
     setSearchMessage(null);
+    setGeocodeResults([]);
+    setShowLocationPicker(false);
     try {
       const geoData = await api.getGeocode(searchLocation);
 
-      let lat = DEFAULT_MAP_CENTER[0];
-      let lng = DEFAULT_MAP_CENTER[1];
-
-      if (geoData.results && geoData.results.length > 0) {
-        const { location } = geoData.results[0].geometry;
-        lat = location.lat;
-        lng = location.lng;
-        setMapCenter([lat, lng]);
+      const results = geoData.results || [];
+      if (results.length === 0) {
+        doSearch(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1], searchLocation, radius);
+        return;
       }
 
-      const locationCoords = `${lat},${lng}`;
-      const placesData = await api.searchPlaces(searchType, locationCoords);
-
-      if (placesData.source === "live" && placesData.leads.length > 0) {
-        setLeads(placesData.leads);
-        setSelectedLead(placesData.leads[0]);
-        setSearchMessage(`${placesData.leads.length} negocios encontrados para "${searchType}" en ${searchLocation}.`);
-      } else if (placesData.source === "demo") {
-        setLeads([]);
-        setSearchMessage(placesData.note || "Cargá GOOGLE_MAPS_API_KEY para búsqueda real de negocios.");
-      } else {
-        setLeads([]);
-        setSearchMessage(`No se encontraron negocios para "${searchType}" en ${searchLocation}.`);
+      if (results.length > 1) {
+        const distinct = results.filter((r, i, arr) =>
+          arr.findIndex(x => x.formatted_address === r.formatted_address) === i
+        );
+        if (distinct.length > 1) {
+          setGeocodeResults(distinct);
+          setShowLocationPicker(true);
+          setLoading(false);
+          return;
+        }
       }
+
+      const { location } = results[0].geometry;
+      const lat = location.lat;
+      const lng = location.lng;
+      setMapCenter([lat, lng]);
+      setLoading(false);
+      doSearch(lat, lng, results[0].formatted_address, radius);
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error(error);
       setLeads([]);
       setSearchMessage(getErrorMessage(error, "No se pudo generar la búsqueda. Intentá de nuevo."));
-    } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickLocation = (idx: number) => {
+    const chosen = geocodeResults[idx];
+    if (!chosen) return;
+    const { lat, lng } = chosen.geometry.location;
+    setMapCenter([lat, lng]);
+    doSearch(lat, lng, chosen.formatted_address, radius);
   };
 
   const handleSelectLead = async (lead: Lead) => {
@@ -214,17 +257,57 @@ export const LeadFinder = ({
                 className="pro-input w-full pl-12"
                />
             </div>
-            <div className="relative">
-               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-               <input
-                type="text"
-                value={query.searchLocation}
-                onChange={(e) => setQuery(prev => ({ ...prev, searchLocation: e.target.value }))}
-                placeholder="Localización (ej. Barcelona)"
-                className="pro-input w-full pl-12"
-               />
-            </div>
-             <button
+             <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                <input
+                 type="text"
+                 value={query.searchLocation}
+                 onChange={(e) => setQuery(prev => ({ ...prev, searchLocation: e.target.value }))}
+                 placeholder="Localización (ej. Barcelona)"
+                 className="pro-input w-full pl-12"
+                />
+             </div>
+
+             <div className="relative">
+               <button
+                 onClick={() => setRadiusOpen(!radiusOpen)}
+                 className="w-full flex items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-xs font-bold text-slate-400 hover:border-slate-500 transition-colors"
+               >
+                 <span className="flex items-center gap-2">
+                   <Maximize size={14} className="text-slate-500" />
+                   Radio: <span className="text-slate-200">{radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}</span>
+                 </span>
+                 <ChevronDown size={12} className={radiusOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+               </button>
+               <AnimatePresence>
+                 {radiusOpen && (
+                   <motion.div
+                     initial={{ height: 0, opacity: 0 }}
+                     animate={{ height: 'auto', opacity: 1 }}
+                     exit={{ height: 0, opacity: 0 }}
+                     className="absolute z-20 w-full mt-1 overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
+                   >
+                     <div className="p-2 flex flex-wrap gap-1">
+                       {[5000, 10000, 25000, 50000, 100000].map(r => (
+                         <button
+                           key={r}
+                           onClick={() => { setRadius(r); setRadiusOpen(false); }}
+                           className={`flex-1 py-2 rounded-xl text-[10px] font-bold transition-all ${
+                             radius === r
+                               ? 'bg-brand text-white'
+                               : 'bg-surface-hover text-slate-400 hover:text-slate-200'
+                           }`}
+                         >
+                           {r >= 1000 ? `${r / 1000}km` : `${r}m`}
+                         </button>
+                       ))}
+                     </div>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+             </div>
+
+              <button
                onClick={() => void handleSearch()}
               disabled={loading || !query.searchType || !query.searchLocation}
               className="pro-btn w-full"
@@ -235,8 +318,35 @@ export const LeadFinder = ({
                 </span>
               ) : "Escanear Area Seleccionada"}
             </button>
-          </div>
 
+            <AnimatePresence>
+              {showLocationPicker && geocodeResults.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-3">
+                    Ubicación ambigua — elegí la correcta
+                  </p>
+                  <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-hide">
+                    {geocodeResults.map((r, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handlePickLocation(i)}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-amber-500/10 hover:text-amber-300 transition-all flex items-center gap-2"
+                      >
+                        <MapPin size={12} className="text-amber-500 shrink-0" />
+                        <span className="truncate">{r.formatted_address}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+          </div>
           {searchMessage && (
             <div className="mb-6 rounded-2xl border border-border bg-surface-hover px-4 py-3 text-xs font-medium text-slate-400">
               {searchMessage}

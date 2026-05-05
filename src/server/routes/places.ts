@@ -16,7 +16,7 @@ const scoreFromRatings = (totalRatings: number): "HIGH" | "MEDIUM" | "LOW" => {
 };
 
 placesRouter.post("/google/places-search", placesLimiter, async (req, res) => {
-  const { query, location, radius = 5000 } = req.body;
+  const { query, location, radius = 25000 } = req.body;
   if (!query || typeof query !== "string" || !query.trim()) {
     return res.status(400).json({ error: "Se requiere un tipo de negocio para buscar." });
   }
@@ -40,6 +40,15 @@ placesRouter.post("/google/places-search", placesLimiter, async (req, res) => {
     const response = await axios.get(
       `https://maps.googleapis.com/maps/api/place/textsearch/json?${params.toString()}`
     );
+
+    if (response.data.status !== "OK" && response.data.status !== "ZERO_RESULTS") {
+      console.warn(`Places fallback: Google returned ${response.data.status}`);
+      return res.json({
+        leads: [],
+        source: "demo",
+        note: `Google Places API error: ${response.data.status}. Verificá la key en Google Cloud Console.`,
+      });
+    }
 
     const results = response.data.results || [];
     const leads = results.map((place: Record<string, unknown>) => ({
